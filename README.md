@@ -62,6 +62,45 @@ Encourages civic participation through recognition.
 User-friendly interface with theme support.
 
 ---
+## 👤 User Dashboard Guide (Citizen)
+
+### How to Access
+1. Log in using a regular (non-admin) account.
+2. Click **“My Grievances”** in the navigation bar.
+
+### What You Can Do
+- View a personalized dashboard with your total reports and resolved issues  
+- Track the status of each grievance (Pending, In Progress, Resolved)  
+- See priority levels and expected resolution dates  
+- Filter and sort issues by category or status  
+
+---
+
+## 🛠️ Admin Dashboard Guide
+
+### How to Access
+1. Log in using an **admin account**.
+2. Click **“Admin Dashboard”** in the navigation bar.
+
+### Admin Capabilities
+- View all grievances submitted by all users  
+- See who reported each issue  
+- Update issue status (Pending → In Progress → Resolved)  
+- Automatically award a **Civic Contributor Badge** when an issue is resolved  
+- Delete duplicate or invalid complaints  
+
+---
+
+## 🔐 Admin Login (Demo Access)
+
+Use the following credentials to access admin features:
+
+**Email:** `giridharlearn@gmail.com`  
+**Password:** `giridhar`
+
+> ⚠️ These credentials are for **demo/testing purposes only**.
+
+---
 
 ##  Tech Stack
 
@@ -80,19 +119,32 @@ User-friendly interface with theme support.
 - Genkit (Google AI)
 
 ---
-##  Environment Variables
+## Running the Application
 
-Create a `.env.local` file in the root directory of the project and add the following:
+This application requires two services to be running simultaneously: the Next.js web app and the Genkit AI service. You will need two separate terminals.
 
-```env
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=YOUR_GOOGLE_MAPS_API_KEY
+**Terminal 1: Start the Web App**
 
+In your first terminal, run the following command to start the Next.js development server:
 
-##  Running the Application
-
-### Terminal 1 – Start the Web Application
 ```bash
 npm run dev
+```
+
+This will make your application available at `http://localhost:9002`.
+
+**Terminal 2: Start the AI Service**
+
+In a second terminal, run the following command to start the Genkit AI service, which powers the chatbot and other AI features:
+
+```bash
+npm run genkit:watch
+```
+
+This service will run in the background and automatically reload if you make changes to the AI flows.
+
+---
+
 ## Project Structure
 
 ```
