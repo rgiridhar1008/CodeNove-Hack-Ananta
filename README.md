@@ -1,24 +1,6 @@
 
 # Civix - A Smart Civic Engagement Platform
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-<div align="center">
-  <img src="https://placehold.co/150x150/40E0D0/212936?text=Civix&font=sans" alt="Civix Logo">
-  <h1 align="center">Civix</h1>
-  <p align="center">
-    A smart civic engagement platform to report local issues, participate in governance, and build a better community together.
-    <br />
-    <a href="#"><strong>Explore the Demo »</strong></a>
-    <br />
-    <br />
-    <a href="/issue-map">View Issue Map</a>
-    ·
-    <a href="/feedback">Report an Issue</a>
-    ·
-    <a href="/about">About Us</a>
-  </p>
-</div>
 
 ---
 
