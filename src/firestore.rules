@@ -1,0 +1,60 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    function getUserData(userId) {
+        return get(/databases/$(database)/documents/users/$(userId)).data;
+    }
+
+    function isAdmin() {
+        // This function can only be used in `allow read` rules.
+        // It cannot be used in `allow write` (create, update, delete) rules
+        // because it performs a `get` call.
+        return isSignedIn() && getUserData(request.auth.uid).role == 'admin';
+    }
+    
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isAdmin() || (isOwner(userId) && request.resource.data.role == resource.data.role);
+    }
+    
+    match /grievances/{grievanceId} {
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if true;
+      allow update: if isAdmin();
+      allow delete: if isAdmin() || isOwner(resource.data.userId);
+    }
+
+    match /polls/{pollId} {
+      allow read: if true;
+      // User must be signed in and the creator of the poll must be the user.
+      allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.createdBy == request.auth.uid;
+
+      match /votes/{voteId} {
+        allow create: if isSignedIn() && request.resource.data.voterId == request.auth.uid;
+        allow read, update, delete: if isOwner(resource.data.voterId);
+      }
+    }
+
+    match /contributors/{contributorId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /issue-categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

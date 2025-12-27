@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 10% 99%; /* Almost white */
+    --foreground: 224 71% 4%; /* Dark Blue-Gray */
+    --card: 0 0% 100%;
+    --card-foreground: 224 71% 4%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71% 4%;
+    --primary: 158 75% 50%; /* #40E0D0 - Turquoise */
+    --primary-foreground: 224 71% 4%;
+    --secondary: 220 13% 91%;
+    --secondary-foreground: 224 71% 4%;
+    --muted: 220 13% 91%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 158 85% 60%; /* Lighter Turquoise for accents */
+    --accent-foreground: 224 71% 4%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 220 13% 86%;
+    --input: 220 13% 86%;
+    --ring: 158 75% 50%;
+    --radius: 0.8rem;
+    --chart-1: hsl(var(--primary));
+    --chart-2: hsl(var(--accent));
+    --chart-3: 222 47% 11%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+  }
+
+  .dark {
+    --background: 222 84% 5%; /* Very Dark Blue */
+    --foreground: 210 40% 98%;
+    --card: 222 84% 7%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 84% 7%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 158 75% 55%; /* Brighter Turquoise for dark mode */
+    --primary-foreground: 224 71% 4%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 158 85% 65%; /* Brighter Turquoise Accent for dark mode */
+    --accent-foreground: 224 71% 4%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 33% 20%;
+    --input: 217 33% 20%;
+    --ring: 158 75% 55%;
+    --chart-1: hsl(var(--primary));
+    --chart-2: hsl(var(--accent));
+    --chart-3: 210 40% 98%;
+    --chart-4: 43 74% 56%;
+    --chart-5: 27 87% 57%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

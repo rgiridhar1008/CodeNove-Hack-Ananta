@@ -1,0 +1,315 @@
+
+{
+  "entities": {
+    "Grievance": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Grievance",
+      "type": "object",
+      "description": "Represents a reported civic grievance.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the grievance."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who reported the grievance."
+        },
+        "issueType": {
+          "type": "string",
+          "description": "Category of the grievance (e.g., Pothole, Street Light)."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the grievance."
+        },
+        "latitude": {
+            "type": "number",
+            "description": "The latitude of the grievance location."
+        },
+        "longitude": {
+            "type": "number",
+            "description": "The longitude of the grievance location."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Pending", "In Progress", "Resolved"],
+          "description": "Current status of the grievance."
+        },
+        "priority": {
+            "type": "string",
+            "enum": ["Low", "Medium", "High"],
+            "description": "The priority level of the grievance."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Date and time when the grievance was reported.",
+          "format": "date-time"
+        },
+        "resolvedAt": {
+          "type": "string",
+          "description": "Date and time when the grievance was resolved.",
+          "format": "date-time"
+        },
+        "imageUrl": {
+            "type": "string",
+            "description": "URL of the uploaded image for the grievance."
+        },
+        "expectedResolutionDate": {
+            "type": "string",
+            "description": "The calculated date by which the issue is expected to be resolved.",
+            "format": "date-time"
+        },
+        "isOverdue": {
+            "type": "boolean",
+            "description": "Flag indicating if the grievance has passed its expected resolution date."
+        },
+        "badgeAwarded": {
+            "type": "boolean",
+            "description": "Flag indicating if a badge has been awarded for this resolved grievance."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "issueType",
+        "description",
+        "latitude",
+        "longitude",
+        "status",
+        "createdAt",
+        "priority"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the Civix platform.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "name": {
+          "type": "string",
+          "description": "Full name of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "role": {
+          "type": "string",
+          "description": "Role of the user (e.g., citizen, admin)."
+        },
+        "badges": {
+            "type": "array",
+            "description": "A list of badges awarded to the user.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "badgeId": { "type": "string" },
+                    "title": { "type": "string" },
+                    "description": { "type": "string" },
+                    "awardedAt": { "type": "string", "format": "date-time" },
+                    "grievanceId": { "type": "string" }
+                },
+                "required": ["badgeId", "title", "awardedAt", "grievanceId"]
+            }
+        },
+        "totalResolvedContributions": {
+            "type": "number",
+            "description": "The total count of resolved issues reported by the user."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email",
+        "role"
+      ]
+    },
+    "Poll": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Poll",
+      "type": "object",
+      "description": "Represents a community poll or voting event.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the poll."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the poll."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the poll."
+        },
+        "options": {
+          "type": "array",
+          "description": "Available voting options for the poll.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "label": { "type": "string" },
+              "votes": { "type": "number" }
+            },
+            "required": ["id", "label", "votes"]
+          }
+        },
+        "startDate": {
+          "type": "string",
+          "description": "Date and time when the poll starts.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "Date and time when the poll ends.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the poll (e.g., active, closed)."
+        },
+        "createdBy": {
+            "type": "string",
+            "description": "The UID of the admin who created the poll."
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "description",
+        "options",
+        "startDate",
+        "endDate",
+        "status",
+        "createdBy"
+      ]
+    },
+    "Vote": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Vote",
+      "type": "object",
+      "description": "Represents a user's vote in a poll.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the vote."
+        },
+        "pollId": {
+          "type": "string",
+          "description": "Reference to the Poll. (Relationship: Poll 1:N Vote)"
+        },
+        "voterId": {
+          "type": "string",
+          "description": "Reference to the User who cast the vote. (Relationship: User 1:N Vote)"
+        },
+        "selectedOption": {
+          "type": "string",
+          "description": "The option selected by the voter."
+        },
+        "voteDate": {
+          "type": "string",
+          "description": "Date and time when the vote was cast.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "pollId",
+        "voterId",
+        "selectedOption",
+        "voteDate"
+      ]
+    },
+    "Contributor": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Contributor",
+      "type": "object",
+      "description": "Represents a contributor to the Civix platform.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the contributor."
+        },
+        "name": {
+          "type": "string",
+          "description": "Full name of the contributor."
+        },
+        "role": {
+          "type": "string",
+          "description": "Role of the contributor (e.g., Lead Developer, UX/UI Designer)."
+        },
+        "avatar": {
+          "type": "string",
+          "description": "URL to the contributor's avatar image."
+        },
+        "githubUrl": {
+          "type": "string",
+          "description": "URL to the contributor's GitHub profile."
+        }
+      },
+      "required": ["id", "name", "role", "avatar", "githubUrl"]
+    },
+    "IssueCategory": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "IssueCategory",
+      "type": "object",
+      "description": "Represents a category for a civic issue.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the issue category."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the category (e.g., 'Pothole')."
+        }
+      },
+      "required": ["id", "name"]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous",
+      "google.com"
+    ]
+  },
+  "firestore": {
+    "collections": {
+      "users": {
+        "$ref": "#/entities/User",
+        "description": "Stores user profiles."
+      },
+      "grievances": {
+        "$ref": "#/entities/Grievance",
+        "description": "Stores all grievances reported by users."
+      },
+      "polls": {
+        "$ref": "#/entities/Poll",
+        "description": "Stores community polls.",
+        "collections": {
+          "votes": {
+            "$ref": "#/entities/Vote",
+            "description": "Stores votes for a specific poll."
+          }
+        }
+      },
+      "contributors": {
+        "$ref": "#/entities/Contributor",
+        "description": "Stores information about project contributors."
+      },
+      "issue-categories": {
+        "$ref": "#/entities/IssueCategory",
+        "description": "Stores the available categories for grievances."
+      }
+    }
+  }
+}
