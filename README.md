@@ -1,6 +1,6 @@
 # Civix – Smart Civic Engagement Platform
 
-🌐 **Live Demo:** https://civixcode.netlify.app/  
+🌐 **Live Demo:** https://civixcodenova.netlify.app/  
 📦 **Repository:** https://github.com/rgiridhar1008/CodeNove-Hack-Ananta  
 
 ---
@@ -167,4 +167,4 @@ Project Repository:
 https://github.com/rgiridhar1008/CodeNove-Hack-Ananta
 
 Live Application:
-https://civixcode.netlify.app/
+https://civixcodenova.netlify.app/
