@@ -1,10 +1,12 @@
 
-export const firebaseConfig = {
-  apiKey: "AIzaSyCwuka4CTgTObhh8a8WgAe9l9eT97B1QYY",
-  authDomain: "studio-5450139247-48b0b.firebaseapp.com",
-  projectId: "studio-5450139247-48b0b",
-  storageBucket: "studio-5450139247-48b0b.appspot.com",
-  messagingSenderId: "719650553408",
-  appId: "1:719650553408:web:a9b7eebde014f668eae9a5"
-};
+// This configuration is now loaded from environment variables in your .env.local file.
+// This approach is more secure and flexible than hardcoding values.
 
+export const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
+};
