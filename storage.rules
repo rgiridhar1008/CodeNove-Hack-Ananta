@@ -1,0 +1,47 @@
+
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    // Function to check if the user has an 'admin' role in Firestore.
+    // This requires a read from Firestore.
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Match the path for grievance images
+    match /grievances/{userId}/{grievanceId}.jpg {
+    
+      // Allow create (upload) only if the user is authenticated and is the owner of the user-specific folder.
+      // Also validate file size (max 5MB) and content type (image).
+      allow create: if isSignedIn() 
+                      && isOwner(userId) 
+                      && request.resource.size < 5 * 1024 * 1024
+                      && request.resource.contentType.matches('image/.*');
+
+      // Allow read access to the owner of the image and to any admin user.
+      allow read: if isSignedIn() && (isOwner(userId) || isAdmin());
+      
+      // Do not allow updates or deletes directly on the storage object.
+      // These should be managed via a server function if needed to ensure data consistency.
+      allow update, delete: if false;
+    }
+    
+    // Deny all other access to the storage bucket by default.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+    

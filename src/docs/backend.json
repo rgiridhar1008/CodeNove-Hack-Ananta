@@ -174,11 +174,17 @@
         },
         "status": {
           "type": "string",
+          "enum": ["Active", "Closed"],
           "description": "Current status of the poll (e.g., active, closed)."
         },
         "createdBy": {
             "type": "string",
             "description": "The UID of the admin who created the poll."
+        },
+        "createdAt": {
+            "type": "string",
+            "description": "The timestamp when the poll was created.",
+            "format": "date-time"
         }
       },
       "required": [
@@ -189,7 +195,8 @@
         "startDate",
         "endDate",
         "status",
-        "createdBy"
+        "createdBy",
+        "createdAt"
       ]
     },
     "Vote": {
@@ -212,9 +219,9 @@
         },
         "selectedOption": {
           "type": "string",
-          "description": "The option selected by the voter."
+          "description": "The ID of the option selected by the voter."
         },
-        "voteDate": {
+        "votedAt": {
           "type": "string",
           "description": "Date and time when the vote was cast.",
           "format": "date-time"
@@ -225,7 +232,7 @@
         "pollId",
         "voterId",
         "selectedOption",
-        "voteDate"
+        "votedAt"
       ]
     },
     "Contributor": {

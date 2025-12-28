@@ -32,8 +32,7 @@ export default function RootLayout({
       <body className="font-body antialiased" suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="light"
           disableTransitionOnChange
         >
           <FirebaseClientProvider>

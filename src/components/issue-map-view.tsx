@@ -30,7 +30,7 @@ const libraries: ("places" | "core")[] = ["places", "core"];
 export function IssueMapView({ issues, selectedIssue, onSelectIssue }: IssueMapViewProps) {
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-maps-script',
-    googleMapsApiKey: "AIzaSyBnaGNZ1URJs8n3DOxIdcNCiXSUURz2qK8",
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
     libraries,
   });
 
@@ -99,6 +99,7 @@ export function IssueMapView({ issues, selectedIssue, onSelectIssue }: IssueMapV
         streetViewControl: false,
         mapTypeControl: false,
         fullscreenControl: false,
+        clickableIcons: false
       }}
     >
       {issues.map(issue => (
@@ -107,13 +108,15 @@ export function IssueMapView({ issues, selectedIssue, onSelectIssue }: IssueMapV
           position={{ lat: issue.latitude, lng: issue.longitude }}
           onClick={() => onSelectIssue(issue)}
           icon={{
-            path: window.google.maps.SymbolPath.CIRCLE,
-            scale: issue.id === selectedIssue?.id ? 10 : 7,
-            fillColor: issue.id === selectedIssue?.id ? "hsl(var(--primary))" : "#6f81a8",
+            path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
+            fillColor: issue.id === selectedIssue?.id ? "hsl(var(--primary))" : "#FF0000",
             fillOpacity: 1,
-            strokeWeight: 2,
-            strokeColor: "#ffffff"
+            strokeWeight: 0,
+            rotation: 0,
+            scale: issue.id === selectedIssue?.id ? 2 : 1.5,
+            anchor: new window.google.maps.Point(12, 24),
           }}
+          zIndex={issue.id === selectedIssue?.id ? 10 : 1}
         />
       ))}
     </GoogleMap>

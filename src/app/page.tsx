@@ -6,6 +6,10 @@ import { StatCard } from '@/components/stat-card';
 import { FeatureCard } from '@/components/feature-card';
 import Link from 'next/link';
 import { BarChart, CheckCircle, ListChecks, ListTodo, MapPin, Timer, Users, Vote } from 'lucide-react';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { User } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const stats = [
   {
@@ -53,15 +57,44 @@ const features = [
   },
 ];
 
+const WelcomeMessage = () => {
+    const { user, isUserLoading } = useUser();
+    const firestore = useFirestore();
+    
+    const userDocRef = useMemoFirebase(() => (firestore && user ? doc(firestore, 'users', user.uid) : null), [firestore, user]);
+    const { data: userData, isLoading: isUserDataLoading } = useDoc<User>(userDocRef);
+
+    if (isUserLoading || isUserDataLoading) {
+        return <Skeleton className="h-12 w-80" />;
+    }
+
+    if (!user || !userData) {
+        return null;
+    }
+    
+    const welcomeText = userData.role === 'admin'
+        ? `Welcome Admin, ${userData.name}!`
+        : `Welcome, ${userData.name}!`;
+
+    return <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-foreground">{welcomeText}</h2>;
+}
+
+
 export default function Home() {
+  const { user } = useUser();
+  
   return (
     <div className="flex flex-col animate-fade-in">
       <section className="w-full bg-card py-20 md:py-32 lg:py-40">
         <div className="container mx-auto px-4 md:px-6 text-center">
           <div className="max-w-3xl mx-auto animate-slide-in-up">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tighter text-primary">
-              Empowering Citizens. Improving Governance.
-            </h1>
+            {user ? (
+                <WelcomeMessage />
+            ) : (
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tighter text-primary">
+                Empowering Citizens. Improving Governance.
+                </h1>
+            )}
             <p className="mt-4 text-lg md:text-xl text-muted-foreground">
               Civix is your platform to report local issues, participate in governance, and build a better community together.
             </p>

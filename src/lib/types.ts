@@ -17,6 +17,7 @@ export interface Poll {
   startDate: any;
   endDate: any;
   createdBy: string;
+  createdAt: any;
 }
 
 export type GrievanceStatus = "Pending" | "In Progress" | "Resolved";
@@ -33,8 +34,8 @@ export interface Grievance {
   status: GrievanceStatus;
   createdAt: any; // Using `any` for Firestore Timestamp flexibility
   resolvedAt?: any; // To store the resolution timestamp
-  imageUrl?: string;
   priority: GrievancePriority;
+  imageUrl?: string; // Image is optional
   expectedResolutionDate?: any;
   isOverdue?: boolean;
   badgeAwarded?: boolean;
@@ -61,3 +62,12 @@ export interface IssueCategory {
     id: string;
     name: string;
 }
+
+export interface Vote {
+    id: string;
+    pollId: string;
+    voterId: string;
+    selectedOption: string;
+    votedAt: any;
+}
+    

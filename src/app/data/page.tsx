@@ -93,8 +93,17 @@ export default function DataPage() {
   );
   const { data: grievances, isLoading: isGrievancesLoading } = useCollection<Grievance>(grievancesQuery);
   
-  const columns = useMemo(() => getColumns(isAdmin), [isAdmin]);
-  const isLoading = isUserDocLoading || isGrievancesLoading;
+  // Fetch all users if admin, to map userId to name
+  const usersQuery = useMemoFirebase(() => (firestore && isAdmin ? query(collection(firestore, 'users')) : null), [firestore, isAdmin]);
+  const { data: usersData, isLoading: areUsersLoading } = useCollection<User>(usersQuery);
+
+  const userMap = useMemo(() => {
+    if (!usersData) return new Map<string, string>();
+    return new Map(usersData.map(u => [u.id, u.name]));
+  }, [usersData]);
+
+  const columns = useMemo(() => getColumns(isAdmin, userMap), [isAdmin, userMap]);
+  const isLoading = isUserDocLoading || isGrievancesLoading || (isAdmin && areUsersLoading);
 
   return (
     <div className="container mx-auto px-4 md:px-6 py-12 md:py-20 animate-fade-in">

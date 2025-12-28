@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -36,6 +36,7 @@ interface IssueCardProps {
 function IssueCard({ issue, onSelect, isSelected }: IssueCardProps) {
   return (
     <Card
+      id={`issue-card-${issue.id}`}
       className={cn(
         "cursor-pointer transition-all hover:shadow-md",
         isSelected ? "border-primary ring-2 ring-primary" : ""
@@ -68,6 +69,18 @@ export function IssueMapClient({ initialIssues }: IssueMapClientProps) {
   const [statusFilter, setStatusFilter] = useState<GrievanceStatus | "All">("All");
   const [categoryFilter, setCategoryFilter] = useState<string | "All">("All");
   const [selectedIssue, setSelectedIssue] = useState<Grievance | null>(initialIssues[0] || null);
+
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (selectedIssue && scrollAreaRef.current) {
+        const issueCardElement = document.getElementById(`issue-card-${selectedIssue.id}`);
+        if (issueCardElement) {
+            issueCardElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+  }, [selectedIssue]);
+
 
   const filteredIssues = useMemo(() => {
     return initialIssues.filter((issue) => {
@@ -103,7 +116,7 @@ export function IssueMapClient({ initialIssues }: IssueMapClientProps) {
               </SelectContent>
             </Select>
           </div>
-          <ScrollArea className="flex-1 -mr-4">
+          <ScrollArea className="flex-1 -mr-4" ref={scrollAreaRef}>
             <div className="space-y-2 pr-4">
               {filteredIssues.length > 0 ? (
                 filteredIssues.map((issue) => (

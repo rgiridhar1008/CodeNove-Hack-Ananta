@@ -1,13 +1,11 @@
 
 "use client";
 
-import { useRef, useState, useTransition, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 import { z } from "zod";
 import { useUser, useFirestore, useFirebaseApp } from "@/firebase";
-import { addDoc, collection, serverTimestamp, Timestamp } from "firebase/firestore";
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { addDoc, collection, doc, serverTimestamp, Timestamp, setDoc } from "firebase/firestore";
 import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
-import usePlacesAutocomplete, { getGeocode, getLatLng } from 'use-places-autocomplete';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,12 +14,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Input } from "./ui/input";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import type { IssueCategory, GrievancePriority } from "@/lib/types";
 import { Skeleton } from "./ui/skeleton";
-import { LocateIcon, Search, AlertTriangle } from "lucide-react";
+import { LocateIcon } from "lucide-react";
+import { PlacesAutocomplete } from "./places-autocomplete";
 
 const grievanceSchema = z.object({
   issueType: z.string().min(1, "Issue type is required."),
@@ -29,7 +27,6 @@ const grievanceSchema = z.object({
   latitude: z.number(),
   longitude: z.number(),
   priority: z.enum(["Low", "Medium", "High"]),
-  imageUrl: z.string().url().optional(),
 });
 
 // Hardcoded categories as a fallback
@@ -58,92 +55,35 @@ const containerStyle = {
 
 const libraries: ("places" | "core")[] = ["places", "core"];
 
-const PlacesAutocomplete = ({ onSelectLocation }: { onSelectLocation: (lat: number, lng: number) => void}) => {
-  const {
-    ready,
-    value,
-    suggestions: { status, data },
-    setValue,
-    clearSuggestions,
-  } = usePlacesAutocomplete({
-    requestOptions: { /* Define search scope here */ },
-    debounce: 300,
-  });
-
-  const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setValue(e.target.value);
-  };
-
-  const handleSelect = ({ description }: {description: string}) => () => {
-    setValue(description, false);
-    clearSuggestions();
-
-    getGeocode({ address: description }).then((results) => {
-      const { lat, lng } = getLatLng(results[0]);
-      onSelectLocation(lat, lng);
-    });
-  };
-
-  const renderSuggestions = () =>
-    data.map((suggestion) => {
-      const {
-        place_id,
-        structured_formatting: { main_text, secondary_text },
-      } = suggestion;
-
-      return (
-        <li key={place_id} onClick={handleSelect(suggestion)} className="p-2 hover:bg-muted cursor-pointer">
-          <strong>{main_text}</strong> <small>{secondary_text}</small>
-        </li>
-      );
-    });
-
-  return (
-    <div className="relative">
-      <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={value}
-            onChange={handleInput}
-            disabled={!ready}
-            placeholder="Search for a location or address"
-            className="pl-10"
-          />
-      </div>
-
-      {status === 'OK' && <ul className="absolute z-10 w-full bg-background border rounded-md mt-1 shadow-lg">{renderSuggestions()}</ul>}
-    </div>
-  )
-}
 
 export function GrievanceForm() {
   const { user } = useUser();
   const firestore = useFirestore();
-  const firebaseApp = useFirebaseApp();
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   
   const [selectedIssueType, setSelectedIssueType] = useState('');
   const [priority, setPriority] = useState<GrievancePriority>('Medium');
   const [description, setDescription] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [location, setLocation] = useState<{lat: number, lng: number} | null>(null);
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const mapRef = useRef<google.maps.Map | null>(null);
-  
 
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-maps-script',
-    googleMapsApiKey: "AIzaSyBnaGNZ1URJs8n3DOxIdcNCiXSUURz2qK8",
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
     libraries,
   });
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setImageFile(e.target.files[0]);
-    }
-  };
+  const resetForm = () => {
+    formRef.current?.reset();
+    setSelectedIssueType('');
+    setDescription('');
+    setPriority('Medium');
+    setLocation(null);
+  }
 
   const getExpectedResolutionDate = (issueType: string): Date => {
       const days = resolutionDays[issueType] || 7;
@@ -156,7 +96,7 @@ export function GrievanceForm() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    if (!user || !firestore || !firebaseApp) {
+    if (!user || !firestore) {
       toast({ title: "Error", description: "You must be logged in to submit a grievance.", variant: "destructive" });
       setIsSubmitting(false);
       return;
@@ -169,22 +109,12 @@ export function GrievanceForm() {
     }
 
     try {
-        let imageUrl: string | undefined = undefined;
-
-        if (imageFile) {
-            const storage = getStorage(firebaseApp);
-            const fileRef = storageRef(storage, `grievances/${user.uid}/${Date.now()}_${imageFile.name}`);
-            await uploadBytes(fileRef, imageFile);
-            imageUrl = await getDownloadURL(fileRef);
-        }
-        
         const grievanceDataToValidate = {
             issueType: selectedIssueType,
             description: description,
             latitude: location.lat,
             longitude: location.lng,
             priority: priority,
-            ...(imageUrl && { imageUrl }),
         };
 
         const validatedFields = grievanceSchema.safeParse(grievanceDataToValidate);
@@ -200,37 +130,36 @@ export function GrievanceForm() {
         const createdAt = Timestamp.now();
         const expectedResolutionDate = getExpectedResolutionDate(validatedFields.data.issueType);
         
+        const grievanceRef = doc(collection(firestore, "grievances"));
+        const grievanceId = grievanceRef.id;
+
         const finalGrievanceData = {
+            id: grievanceId,
             userId: user.uid,
             ...validatedFields.data,
+            imageUrl: null,
             status: "Pending" as const,
             createdAt: createdAt,
             expectedResolutionDate: Timestamp.fromDate(expectedResolutionDate),
             isOverdue: false,
         };
-
-        const grievancesCollection = collection(firestore, "grievances");
-        await addDoc(grievancesCollection, finalGrievanceData);
+        
+        await setDoc(grievanceRef, finalGrievanceData).catch(error => {
+            const permissionError = new FirestorePermissionError({
+                path: grievanceRef.path,
+                operation: 'create',
+                requestResourceData: finalGrievanceData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            throw error;
+        });
         
         toast({ title: "Success!", description: "Grievance submitted successfully! It will now appear on the issue map."});
+        resetForm();
         
-        formRef.current?.reset();
-        setSelectedIssueType('');
-        setDescription('');
-        setPriority('Medium');
-        setLocation(null);
-        setImageFile(null);
-        
-    } catch (error) {
+    } catch (error: any) {
       console.error("Grievance submission error:", error);
-      const grievancesCollection = collection(firestore, "grievances");
-      const permissionError = new FirestorePermissionError({
-          path: grievancesCollection.path,
-          operation: 'create',
-      });
-      errorEmitter.emit('permission-error', permissionError);
-      
-      toast({ title: "Submission Error", description: "Could not submit grievance. You may not have the required permissions.", variant: "destructive"});
+      toast({ title: "Submission Error", description: error.message || "Could not submit grievance. You may not have permission.", variant: "destructive"});
     } finally {
         setIsSubmitting(false);
     }
@@ -287,7 +216,7 @@ export function GrievanceForm() {
           <div className="grid md:grid-cols-2 gap-6">
              <div className="space-y-2">
                 <Label>Issue Type</Label>
-                <Select name="issueType" onValueChange={setSelectedIssueType} value={selectedIssueType}>
+                <Select name="issueType" onValueChange={setSelectedIssueType} value={selectedIssueType} disabled={isSubmitting}>
                     <SelectTrigger>
                         <SelectValue placeholder="Select an issue type" />
                     </SelectTrigger>
@@ -300,7 +229,7 @@ export function GrievanceForm() {
             </div>
              <div className="space-y-2">
                 <Label>Priority Level</Label>
-                 <Select name="priority" onValueChange={(v) => setPriority(v as GrievancePriority)} value={priority}>
+                 <Select name="priority" onValueChange={(v) => setPriority(v as GrievancePriority)} value={priority} disabled={isSubmitting}>
                     <SelectTrigger>
                         <SelectValue placeholder="Select priority" />
                     </SelectTrigger>
@@ -322,13 +251,14 @@ export function GrievanceForm() {
               onChange={(e) => setDescription(e.target.value)}
               rows={5}
               placeholder="Describe the issue in detail..."
+              disabled={isSubmitting}
             />
           </div>
-
+          
           <div className="space-y-4">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <Label>Issue Location</Label>
-                <Button type="button" variant="outline" size="sm" onClick={handleUseCurrentLocation} className="w-full sm:w-auto">
+                <Button type="button" variant="outline" size="sm" onClick={handleUseCurrentLocation} className="w-full sm:w-auto" disabled={isSubmitting || !isLoaded}>
                     <LocateIcon className="mr-2 h-4 w-4" />
                     Use Current Location
                 </Button>
@@ -340,7 +270,7 @@ export function GrievanceForm() {
                     center={location || { lat: 20.5937, lng: 78.9629 }}
                     zoom={location ? 15 : 5}
                     onClick={handleMapClick}
-                    options={{ streetViewControl: false, mapTypeControl: false }}
+                    options={{ streetViewControl: false, mapTypeControl: false, clickableIcons: false }}
                     onLoad={(map) => { mapRef.current = map; }}
                 >
                    {location && <Marker position={location} />}
@@ -350,24 +280,15 @@ export function GrievanceForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="image">Upload Image (Optional)</Label>
-            <Input
-              id="image"
-              name="image"
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              disabled={isSubmitting}
-            />
+            <Label>Upload Image (Optional)</Label>
+            <Input type="file" disabled={isSubmitting} accept="image/png, image/jpeg" />
           </div>
 
           <Button type="submit" disabled={isSubmitting} className="w-full">
-            {isSubmitting ? "Submitting..." : "Submit Grievance"}
+            {isSubmitting ? "Submitting Grievance..." : "Submit Grievance"}
           </Button>
         </form>
       </CardContent>
     </Card>
   );
 }
-
-    

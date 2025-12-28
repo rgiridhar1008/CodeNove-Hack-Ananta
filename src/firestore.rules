@@ -16,9 +16,6 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-        // This function can only be used in `allow read` rules.
-        // It cannot be used in `allow write` (create, update, delete) rules
-        // because it performs a `get` call.
         return isSignedIn() && getUserData(request.auth.uid).role == 'admin';
     }
     
@@ -37,13 +34,18 @@ service cloud.firestore {
 
     match /polls/{pollId} {
       allow read: if true;
-      // User must be signed in and the creator of the poll must be the user.
-      allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
-      allow update, delete: if isSignedIn() && resource.data.createdBy == request.auth.uid;
+      allow create: if isSignedIn() && isOwner(request.resource.data.createdBy);
+      allow update: if isOwner(resource.data.createdBy);
+      allow delete: if isOwner(resource.data.createdBy) || isAdmin();
 
       match /votes/{voteId} {
-        allow create: if isSignedIn() && request.resource.data.voterId == request.auth.uid;
-        allow read, update, delete: if isOwner(resource.data.voterId);
+        allow create: if isSignedIn() 
+                      && isOwner(voteId)
+                      && isOwner(request.resource.data.voterId)
+                      && !exists(/databases/$(database)/documents/polls/$(pollId)/votes/$(request.auth.uid));
+        
+        allow read: if isOwner(resource.data.voterId) || isAdmin();
+        allow update, delete: if false;
       }
     }
 

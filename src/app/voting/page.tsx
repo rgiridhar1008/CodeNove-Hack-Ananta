@@ -6,13 +6,14 @@ import { PollChart } from "@/components/poll-chart";
 import { CreatePollForm } from "@/components/create-poll-form";
 import { VotingStatCard } from "@/components/voting-stat-card";
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from "@/firebase";
-import { collection, query, doc } from "firebase/firestore";
+import { collection, query, doc, where } from "firebase/firestore";
 import type { Poll, User } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ListChecks, Users, TrendingUp, Vote, BarChart, PlusSquare } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { PollAnalyticsDashboard } from "@/components/poll-analytics-dashboard";
 
 const stats = [
   {
@@ -38,30 +39,35 @@ const stats = [
 export default function VotingPage() {
   const firestore = useFirestore();
   const { user } = useUser();
+  const [activeTab, setActiveTab] = useState("browse");
+
   const userDocRef = useMemoFirebase(() => (firestore && user ? doc(firestore, 'users', user.uid) : null), [firestore, user]);
-  const { data: userData } = useDoc<User>(userDocRef);
+  const { data: userData, isLoading: isUserLoading } = useDoc<User>(userDocRef);
   const isAdmin = userData?.role === 'admin';
 
   const pollsQuery = useMemoFirebase(
     () => (firestore ? query(collection(firestore, "polls")) : null),
     [firestore]
   );
-  const { data: polls, isLoading } = useCollection<Poll>(pollsQuery);
+  const { data: polls, isLoading: arePollsLoading } = useCollection<Poll>(pollsQuery);
 
   const activePollsCount = polls?.filter(p => p.status === 'Active').length || 0;
-  stats[0].value = isLoading ? "..." : activePollsCount.toString();
-  const totalVotes = polls?.reduce((acc, poll) => acc + (poll.options?.reduce((sum, opt) => sum + (opt.votes || 0), 0) || 0), 0) || 0;
-  stats[1].value = isLoading ? "..." : totalVotes.toLocaleString();
+  stats[0].value = arePollsLoading ? "..." : activePollsCount.toString();
+  
+  const totalVotes = polls?.reduce((acc, poll) => acc + poll.options.reduce((sum, opt) => sum + (opt.votes || 0), 0), 0) || 0;
+  stats[1].value = arePollsLoading ? "..." : totalVotes.toLocaleString();
   
   // Placeholder for engagement
-  stats[2].value = isLoading ? "..." : "12%"; 
+  stats[2].value = arePollsLoading ? "..." : "12%"; 
+
+  const isLoading = isUserLoading || arePollsLoading;
 
   return (
     <div className="container mx-auto px-4 md:px-6 py-12 md:py-20 animate-fade-in">
       <div className="text-center mb-12 animate-slide-in-up">
-        <h1 className="text-4xl md:text-5xl font-bold text-primary tracking-tighter">Voting System</h1>
+        <h1 className="text-4xl md:text-5xl font-bold text-primary tracking-tighter">Community Voting</h1>
         <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-          Create polls, vote, and view results, all in a secure, beautiful platform.
+          Create polls, vote, and view results to shape your community.
         </p>
       </div>
 
@@ -71,7 +77,7 @@ export default function VotingPage() {
           ))}
       </div>
 
-      <Tabs defaultValue="browse" className="w-full animate-slide-in-up" style={{animationDelay: '450ms'}}>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full animate-slide-in-up" style={{animationDelay: '450ms'}}>
         <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-3' : 'grid-cols-2'} max-w-2xl mx-auto h-12`}>
           <TabsTrigger value="browse" className="h-10 text-base"><ListChecks className="mr-2 h-5 w-5"/>Browse Polls</TabsTrigger>
           {isAdmin && <TabsTrigger value="create" className="h-10 text-base"><PlusSquare className="mr-2 h-5 w-5"/>Create Poll</TabsTrigger>}
@@ -87,7 +93,7 @@ export default function VotingPage() {
                         ))
                     ) : polls && polls.length > 0 ? (
                         polls?.map((poll, index) => (
-                            <PollChart key={poll.id} poll={poll} animationDelay={index * 150} />
+                            <PollChart key={poll.id} poll={poll} isAdmin={isAdmin} animationDelay={index * 150} />
                         ))
                     ) : (
                         <div className="text-center py-20 flex flex-col items-center justify-center">
@@ -97,7 +103,7 @@ export default function VotingPage() {
                             <h3 className="text-2xl font-bold mb-2">No polls yet</h3>
                             <p className="text-muted-foreground mb-6">{isAdmin ? "Create the first poll to get started!" : "No active polls at the moment. Please check back later."}</p>
                             {isAdmin && (
-                                <Button onClick={() => document.querySelector<HTMLButtonElement>('button[data-state="inactive"][value="create"]')?.click()}>
+                                <Button onClick={() => setActiveTab("create")}>
                                     <PlusSquare className="mr-2 h-5 w-5"/>
                                     Create Poll
                                 </Button>
@@ -121,11 +127,7 @@ export default function VotingPage() {
           </TabsContent>
         )}
         <TabsContent value="analytics">
-            <Card className="mt-6">
-              <CardContent className="p-16 text-center text-muted-foreground">
-                Analytics dashboard coming soon.
-              </CardContent>
-           </Card>
+            <PollAnalyticsDashboard polls={polls || []} isLoading={isLoading} />
         </TabsContent>
       </Tabs>
     </div>

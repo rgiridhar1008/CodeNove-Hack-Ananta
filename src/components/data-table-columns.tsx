@@ -2,13 +2,11 @@
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table"
-import { ArrowUpDown, MoreHorizontal, Trash2, Award } from "lucide-react"
+import { ArrowUpDown, MoreHorizontal, Trash2, Award, Image as ImageIcon } from "lucide-react"
 import { doc, updateDoc, serverTimestamp, deleteDoc, writeBatch, increment, arrayUnion } from "firebase/firestore"
 import { useFirestore } from "@/firebase"
-import Image from "next/image"
 import { format, formatDistanceToNow } from 'date-fns';
 import * as React from "react"
-
 
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -54,7 +52,7 @@ const StatusUpdateDropdown = ({ grievance }: { grievance: Grievance }) => {
     const { toast } = useToast();
     const [isAlertOpen, setIsAlertOpen] = React.useState(false);
 
-    const updateStatus = async (status: GrievanceStatus) => {
+    const updateStatus = (status: GrievanceStatus) => {
         if (!firestore) return;
         
         const grievanceRef = doc(firestore, "grievances", grievance.id);
@@ -87,15 +85,14 @@ const StatusUpdateDropdown = ({ grievance }: { grievance: Grievance }) => {
         }
 
 
-        try {
-            await batch.commit();
+        batch.commit().then(() => {
             toast({
               title: `Status Updated to ${status}`,
               description: status === "Resolved" && !grievance.badgeAwarded 
                 ? `A 'Civic Contributor' badge has been awarded to the user.`
                 : `The user will be notified of the status change.`,
             });
-        } catch (error) {
+        }).catch((error) => {
             console.error("Error updating status:", error);
             const permissionError = new FirestorePermissionError({
                 path: grievanceRef.path,
@@ -108,19 +105,19 @@ const StatusUpdateDropdown = ({ grievance }: { grievance: Grievance }) => {
                 title: "Update Failed",
                 description: "You do not have permission to update the status."
             });
-        }
+        });
     }
 
-    const handleDelete = async () => {
+    const handleDelete = () => {
         if (!firestore) return;
+        setIsAlertOpen(false);
         const grievanceRef = doc(firestore, "grievances", grievance.id);
-        try {
-            await deleteDoc(grievanceRef);
+        deleteDoc(grievanceRef).then(() => {
             toast({
                 title: "Grievance Deleted",
                 description: "The issue has been successfully removed.",
             });
-        } catch (error) {
+        }).catch((error) => {
             console.error("Error deleting grievance:", error);
             const permissionError = new FirestorePermissionError({
                 path: grievanceRef.path,
@@ -132,9 +129,7 @@ const StatusUpdateDropdown = ({ grievance }: { grievance: Grievance }) => {
                 title: "Deletion Failed",
                 description: "You do not have permission to delete this grievance."
             });
-        } finally {
-            setIsAlertOpen(false);
-        }
+        });
     }
 
     return (
@@ -180,24 +175,8 @@ const StatusUpdateDropdown = ({ grievance }: { grievance: Grievance }) => {
     )
 }
 
-export const getColumns = (isAdmin: boolean): ColumnDef<Grievance>[] => {
+export const getColumns = (isAdmin: boolean, userMap: Map<string, string>): ColumnDef<Grievance>[] => {
     const columns: ColumnDef<Grievance>[] = [
-      {
-        accessorKey: "imageUrl",
-        header: "Image",
-        cell: ({ row }) => {
-          const imageUrl = row.getValue("imageUrl") as string;
-          return imageUrl ? (
-            <div className="w-24 h-16 relative rounded-md overflow-hidden">
-                <Image src={imageUrl} alt="Grievance Image" layout="fill" objectFit="cover" />
-            </div>
-          ) : (
-            <div className="w-24 h-16 flex items-center justify-center bg-muted rounded-md text-xs text-muted-foreground">
-                No Image
-            </div>
-          );
-        },
-      },
       {
         accessorKey: "issueType",
         header: ({ column }) => (
@@ -255,6 +234,20 @@ export const getColumns = (isAdmin: boolean): ColumnDef<Grievance>[] => {
         accessorKey: "description",
         header: "Description",
       },
+    ];
+
+    if (isAdmin) {
+        columns.push({
+            accessorKey: "userId",
+            header: "Reported By",
+            cell: ({ row }) => {
+                const userId = row.getValue("userId") as string;
+                return userMap.get(userId) || "Unknown User";
+            }
+        });
+    }
+    
+    columns.push(
       {
         accessorKey: "createdAt",
         header: ({ column }) => (
@@ -304,8 +297,8 @@ export const getColumns = (isAdmin: boolean): ColumnDef<Grievance>[] => {
             return date ? new Date(date.toDate()).toLocaleDateString() : 'N/A';
         },
         enableHiding: true, // This column can be hidden
-      },
-    ];
+      }
+    );
 
     if (isAdmin) {
         columns.push({

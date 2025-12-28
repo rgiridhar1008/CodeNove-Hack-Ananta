@@ -1,6 +1,22 @@
 
+'use client';
+
 import { GrievanceForm } from "@/components/grievance-form";
 import { AlertTriangle } from "lucide-react";
+import dynamic from 'next/dynamic';
+import { Skeleton } from "@/components/ui/skeleton";
+
+const GrievanceFormWithNoSSR = dynamic(() => import('@/components/grievance-form').then(mod => mod.GrievanceForm), { 
+    ssr: false,
+    loading: () => (
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+    )
+});
 
 export default function ReportGrievancePage() {
   return (
@@ -14,11 +30,9 @@ export default function ReportGrievancePage() {
           </p>
         </div>
         <div className="animate-slide-in-up">
-          <GrievanceForm />
+          <GrievanceFormWithNoSSR />
         </div>
       </div>
     </div>
   );
 }
-
-    

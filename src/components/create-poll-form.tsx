@@ -8,7 +8,7 @@ import { z } from "zod";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon, PlusCircle, Trash } from "lucide-react";
 import { useFirestore, useUser } from "@/firebase";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { collection, doc, serverTimestamp, setDoc, Timestamp } from "firebase/firestore";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import type { DateRange } from "react-day-picker";
+import { v4 as uuidv4 } from 'uuid';
 
 const pollFormSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters long."),
@@ -56,50 +57,51 @@ export function CreatePollForm() {
     name: "options",
   });
 
-  const onSubmit = async (values: z.infer<typeof pollFormSchema>) => {
+  const onSubmit = (values: z.infer<typeof pollFormSchema>) => {
     if (!firestore || !user) return;
 
     setIsSubmitting(true);
+    
+    const pollRef = doc(collection(firestore, "polls"));
+    const pollId = pollRef.id;
 
     const pollData = {
+      id: pollId,
       title: values.title,
       description: values.description,
-      options: values.options.map(option => ({ label: option.value, votes: 0 })),
-      startDate: values.dates.from,
-      endDate: values.dates.to,
+      options: values.options.map(option => ({ id: uuidv4(), label: option.value, votes: 0 })),
+      startDate: Timestamp.fromDate(values.dates.from),
+      endDate: Timestamp.fromDate(values.dates.to),
       status: "Active" as const,
       createdAt: serverTimestamp(),
       createdBy: user.uid
     };
 
-    try {
-      const pollsCollection = collection(firestore, "polls");
-      await addDoc(pollsCollection, pollData)
-        .catch(error => {
-            const permissionError = new FirestorePermissionError({
-                path: pollsCollection.path,
-                operation: 'create',
-                requestResourceData: pollData
-            });
-            errorEmitter.emit('permission-error', permissionError);
-            throw permissionError;
+    setDoc(pollRef, pollData)
+      .then(() => {
+        toast({
+          title: "Poll Created!",
+          description: "Your new poll is now live for voting.",
         });
-
-      toast({
-        title: "Poll Created!",
-        description: "Your new poll is now live for voting.",
+        form.reset();
+      })
+      .catch(error => {
+          const permissionError = new FirestorePermissionError({
+              path: pollRef.path,
+              operation: 'create',
+              requestResourceData: pollData
+          });
+          errorEmitter.emit('permission-error', permissionError);
+          console.error("Error creating poll document:", error);
+          toast({
+            variant: "destructive",
+            title: "Error Creating Poll",
+            description: "You do not have permission to create a poll or an error occurred.",
+          });
+      })
+      .finally(() => {
+        setIsSubmitting(false);
       });
-      form.reset();
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error Creating Poll",
-        description: "You do not have permission to create a poll.",
-      });
-      console.error(error);
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   return (
@@ -160,7 +162,7 @@ export function CreatePollForm() {
                     Add Option
                 </Button>
                  {form.formState.errors.options && (
-                    <p className="text-sm font-medium text-destructive mt-2">{form.formState.errors.options.message}</p>
+                    <p className="text-sm font-medium text-destructive mt-2">{form.formState.errors.options?.root?.message}</p>
                  )}
             </div>
 
@@ -219,4 +221,3 @@ export function CreatePollForm() {
     </Form>
   );
 }
-
